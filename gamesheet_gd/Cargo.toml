@@ -1,0 +1,15 @@
+[package]
+name = "gamesheet_gd"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gamesheet_core = {path = "../gamesheet_core"}
+gdnative = {version = "0.11", features = ["custom-godot"]}
+lazy_static = "*"
+dashmap = "*"
+
+[lib]
+crate_type = ["cdylib"]

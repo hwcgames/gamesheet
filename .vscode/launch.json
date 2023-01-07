@@ -1,0 +1,102 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'gamesheet_core'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=gamesheet_core"
+				],
+				"filter": {
+					"name": "gamesheet_core",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug integration test 'basic'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--test=basic",
+					"--package=gamesheet_core"
+				],
+				"filter": {
+					"name": "basic",
+					"kind": "test"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'gamesheet_editor'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=gamesheet_editor",
+					"--package=gamesheet_editor"
+				],
+				"filter": {
+					"name": "gamesheet_editor",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'gamesheet_editor'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=gamesheet_editor",
+					"--package=gamesheet_editor"
+				],
+				"filter": {
+					"name": "gamesheet_editor",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in library 'gamesheet_gd'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--lib",
+					"--package=gamesheet_gd"
+				],
+				"filter": {
+					"name": "gamesheet_gd",
+					"kind": "lib"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		}
+	]
+}

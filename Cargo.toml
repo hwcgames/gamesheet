@@ -1,0 +1,2 @@
+[workspace]
+members = ["gamesheet_core", "gamesheet_editor", "gamesheet_gd"]

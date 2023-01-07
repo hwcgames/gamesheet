@@ -1,0 +1,6 @@
+prelude: |
+  fn thing_in_prelude() {7.0}
+entries:
+  constant: 7.0
+  function: g("constant") * 2.0
+  prelude: g("constant") * thing_in_prelude()

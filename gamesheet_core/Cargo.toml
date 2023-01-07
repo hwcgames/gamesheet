@@ -1,0 +1,18 @@
+[package]
+name = "gamesheet_core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "*", features = ["derive"] }
+serde_yaml = "*"
+rhai = { version = "*", features = ["serde", "internals", "sync"] }
+thiserror = "*"
+dashmap = { version = "*", features = ["serde"] }
+getrandom = "*" # must be referenced here for wasm features to work
+
+[features]
+default = []
+wasm = ["getrandom/js"]
