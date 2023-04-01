@@ -49,7 +49,7 @@ pub enum SheetError {
 
 impl Display for SheetError {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		f.write_str(&format!("{:?}", self))
+		f.write_str(&format!("{self:?}"))
 	}
 }
 
@@ -63,7 +63,7 @@ impl Sheet {
 			sheet.engine.register_fn("g", move |name: &str| {
 				match sheet_.read().unwrap().eval(name) {
 					Err(e) => {
-						eprintln!("Inner evaluation failed with {}", e);
+						eprintln!("Inner evaluation failed with {e}");
 						Dynamic::UNIT
 					}
 					Ok(f) => f,
@@ -127,7 +127,7 @@ impl Sheet {
 		if let Some(value) = self.entries.get(name) {
 			// Compile the script itself
 			#[cfg(debug_assertions)]
-			println!("Compiling AST for {}", name);
+			println!("Compiling AST for {name}");
 			let ast = self.engine.compile(&*value)?;
 			self.asts.insert(name.to_string(), ast.clone());
 			// Determine this scripts's dependencies

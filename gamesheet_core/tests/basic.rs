@@ -10,7 +10,7 @@ fn read_from_sheet() {
 	let sheet = sheet.read().unwrap();
 
 	// Print the sheet's contents
-	println!("{:#?}", sheet);
+	println!("{sheet:#?}");
 
 	// Test the contents of the sheet from the start
 	let constant = sheet.eval("constant").expect("get constant");

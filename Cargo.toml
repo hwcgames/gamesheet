@@ -1,2 +1,5 @@
 [workspace]
-members = ["gamesheet_core", "gamesheet_editor", "gamesheet_gd"]
+members = ["gamesheet_core", "gamesheet_editor", "gamesheet_gd", "gamesheet_gd4"]
+
+[profile.release]
+lto = "fat"
