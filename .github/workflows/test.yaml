@@ -19,7 +19,7 @@ jobs:
     - uses: paulloz/godot-action@v1.2
       name: Install Godot 4
       with:
-        version: 4.0.1
+        version: 4.0
     - name: Build
       run: cargo build --verbose
     - name: Run tests
