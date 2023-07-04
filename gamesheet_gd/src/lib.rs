@@ -3,7 +3,7 @@ use std::{
 	sync::{Arc, RwLock},
 };
 
-use gamesheet_core::{Dynamic, Sheet};
+use gamesheet_core::{Dynamic, GameSheet as GameSheetTrait, Sheet};
 use gdnative::prelude::*;
 
 lazy_static::lazy_static! {

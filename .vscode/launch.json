@@ -57,7 +57,9 @@
 					"kind": "bin"
 				}
 			},
-			"args": [],
+			"args": [
+				"gamesheet_core/tests/basic.gamesheet"
+			],
 			"cwd": "${workspaceFolder}"
 		},
 		{

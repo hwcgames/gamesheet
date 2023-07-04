@@ -1,4 +1,4 @@
-use gamesheet_core::Sheet;
+use gamesheet_core::{GameSheet, Sheet};
 
 #[test]
 fn read_from_sheet() {

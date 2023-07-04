@@ -1,6 +1,7 @@
 //! GameSheet is a library that provides a simple system for storing and computing parameters for game behavior.
 
 use std::{
+	collections::HashSet,
 	fmt::Display,
 	sync::{Arc, RwLock},
 };
@@ -53,15 +54,45 @@ impl Display for SheetError {
 	}
 }
 
+pub trait GameSheet {
+	fn eval(&self, name: &str) -> Result<Dynamic, SheetError>;
+	fn invalidate_cache(&self, name: &str, bad_parents: &[String]) -> Result<(), SheetError>;
+	fn dependencies(&self, name: &str) -> Vec<String>;
+	fn dependents(&self, name: &str) -> Vec<String>;
+	fn entries(&self) -> Vec<String>;
+	fn check_for_cycles(&self, start_at: &str) -> bool
+	where
+		Self: Sized,
+	{
+		fn check_for_cycles_inner(sheet: &dyn GameSheet, history: &[String]) -> bool {
+			let next_nodes = sheet.dependencies(history.last().unwrap());
+			for previous in history {
+				if next_nodes.contains(previous) {
+					return true;
+				}
+			}
+			for node in next_nodes {
+				let mut new_history = history.to_vec();
+				new_history.push(node);
+				if check_for_cycles_inner(sheet, &new_history) {
+					return true;
+				}
+			}
+			return false;
+		}
+		check_for_cycles_inner(self, &vec![start_at.to_string()])
+	}
+}
+
 impl Sheet {
 	pub fn parse(s: &str) -> Result<Arc<RwLock<Self>>, SheetError> {
 		// Parse the sheet from yaml
 		let sheet_: Arc<RwLock<Sheet>> = Arc::new(RwLock::new(serde_yaml::from_str(s)?));
 		{
-			let mut sheet = sheet_.write().unwrap();
+			let mut sheet = sheet_.write().expect("Poisoned sheet lock");
 			let sheet_ = sheet_.clone();
 			sheet.engine.register_fn("g", move |name: &str| {
-				match sheet_.read().unwrap().eval(name) {
+				match sheet_.read().expect("Poisoned sheet lock").eval(name) {
 					Err(e) => {
 						eprintln!("Inner evaluation failed with {e}");
 						Dynamic::UNIT
@@ -83,47 +114,14 @@ impl Sheet {
 		}
 		Ok(sheet_)
 	}
-	pub fn eval(&self, name: &str) -> Result<Dynamic, SheetError> {
-		if let Some(cache) = self.cache.get(name) {
-			Ok(cache.pair().1.clone())
-		} else if let Some(ast) = self.asts.get(name) {
-			let ast = ast.pair().1;
-			let ast = self
-				.prelude_ast
-				.as_ref()
-				.expect("AST must exist")
-				.clone()
-				.merge(ast);
-			let outcome: Dynamic = self.engine.eval_ast(&ast)?;
-			self.cache.insert(name.to_string(), outcome.clone());
-			Ok(outcome)
-		} else {
-			Err(SheetError::BadDependency(name.to_string()))
-		}
-	}
-	pub fn insert_entry(&self, name: &str, script: String) -> Result<(), SheetError> {
-		match self.engine.compile(script.clone()) {
-			Ok(_) => {
-				self.entries.insert(name.to_string(), script);
-				self.build_entry(name)?;
-				Ok(())
-			}
-			Err(e) => Err(SheetError::BadScript(e)),
-		}
-	}
+
 	pub fn insert_prelude(&mut self, script: String) -> Result<(), SheetError> {
 		self.prelude = script;
 		self.build_prelude()?;
 		Ok(())
 	}
-	fn build_prelude(&mut self) -> Result<(), SheetError> {
-		#[cfg(debug_assertions)]
-		println!("Compiling AST for prelude");
-		self.prelude_ast = Some(self.engine.compile(&self.prelude)?);
-		self.cache.clear();
-		Ok(())
-	}
-	fn build_entry(&self, name: &str) -> Result<(), SheetError> {
+
+	pub fn build_entry(&self, name: &str) -> Result<(), SheetError> {
 		if let Some(value) = self.entries.get(name) {
 			// Compile the script itself
 			#[cfg(debug_assertions)]
@@ -154,6 +152,53 @@ impl Sheet {
 			Ok(())
 		}
 	}
+
+	pub fn insert_entry(&self, name: &str, script: String) -> Result<(), SheetError> {
+		match self.engine.compile(script.clone()) {
+			Ok(_) => {
+				self.entries.insert(name.to_string(), script);
+				self.build_entry(name)?;
+				Ok(())
+			}
+			Err(e) => Err(SheetError::BadScript(e)),
+		}
+	}
+
+	pub fn build_prelude(&mut self) -> Result<(), SheetError> {
+		#[cfg(debug_assertions)]
+		println!("Compiling AST for prelude");
+		self.prelude_ast = Some(self.engine.compile(&self.prelude)?);
+		self.cache.clear();
+		Ok(())
+	}
+
+	pub fn get_source(&self, name: &str) -> Option<String> {
+		self.entries.get(name).map(|s| s.to_owned())
+	}
+}
+
+impl GameSheet for Sheet {
+	fn eval(&self, name: &str) -> Result<Dynamic, SheetError> {
+		if self.check_for_cycles(name) {
+			return Err(SheetError::CyclicDependency(name.to_string()));
+		}
+		if let Some(cache) = self.cache.get(name) {
+			Ok(cache.pair().1.clone())
+		} else if let Some(ast) = self.asts.get(name) {
+			let ast = ast.pair().1;
+			let ast = self
+				.prelude_ast
+				.as_ref()
+				.expect("AST must exist")
+				.clone()
+				.merge(ast);
+			let outcome: Dynamic = self.engine.eval_ast(&ast)?;
+			self.cache.insert(name.to_string(), outcome.clone());
+			Ok(outcome)
+		} else {
+			Err(SheetError::BadDependency(name.to_string()))
+		}
+	}
 	fn invalidate_cache(&self, name: &str, bad_parents: &[String]) -> Result<(), SheetError> {
 		self.cache.remove(name);
 		let mut parents = bad_parents.to_owned();
@@ -170,5 +215,62 @@ impl Sheet {
 			self.invalidate_cache(&dependent, &parents)?;
 		}
 		Ok(())
+	}
+	fn dependencies(&self, name: &str) -> Vec<String> {
+		self.deps.get(name).map_or_else(Vec::new, |v| v.clone())
+	}
+	fn dependents(&self, name: &str) -> Vec<String> {
+		self.deps
+			.iter()
+			.filter(|entry| entry.value().iter().any(|s| s == name))
+			.map(|entry| entry.key().clone())
+			.collect()
+	}
+	fn entries(&self) -> Vec<String> {
+		self.entries.iter().map(|r| r.key().clone()).collect()
+	}
+}
+
+impl<S> GameSheet for [S]
+where
+	S: GameSheet,
+{
+	fn eval(&self, name: &str) -> Result<Dynamic, SheetError> {
+		for sheet in self.iter().rev() {
+			if let Ok(outcome) = sheet.eval(name) {
+				return Ok(outcome);
+			}
+		}
+		Err(SheetError::BadDependency(name.to_string()))
+	}
+
+	fn invalidate_cache(&self, name: &str, bad_parents: &[String]) -> Result<(), SheetError> {
+		for sheet in self {
+			sheet.invalidate_cache(name, bad_parents)?
+		}
+		Ok(())
+	}
+
+	fn dependencies(&self, name: &str) -> Vec<String> {
+		for sheet in self.iter().rev() {
+			if sheet.entries().iter().any(|s| s == name) {
+				return sheet.dependencies(name);
+			}
+		}
+		vec![]
+	}
+
+	fn dependents(&self, name: &str) -> Vec<String> {
+		for sheet in self.iter().rev() {
+			if sheet.entries().iter().any(|s| s == name) {
+				return sheet.dependents(name);
+			}
+		}
+		vec![]
+	}
+
+	fn entries(&self) -> Vec<String> {
+		let entries: HashSet<String> = self.iter().flat_map(GameSheet::entries).collect();
+		entries.into_iter().collect()
 	}
 }

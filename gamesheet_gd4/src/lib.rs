@@ -3,7 +3,7 @@ use std::{
 	sync::{Arc, RwLock},
 };
 
-use gamesheet_core::{Dynamic, Sheet};
+use gamesheet_core::{Dynamic, GameSheet as GameSheetTrait, Sheet};
 use godot::prelude::{
 	gdextension, godot_api, godot_error, Array, Base, ExtensionLibrary, Gd, GodotClass,
 	GodotString, Object, ObjectVirtual, Variant,

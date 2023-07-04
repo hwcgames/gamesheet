@@ -6,3 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+eframe = "0.22"
+gamesheet_core = { path = "../gamesheet_core" }
+serde_yaml = "*"
+clap = { version = "*", features = ["derive"] }
